@@ -114,7 +114,7 @@ class OneTimeTokenPlugin(BasePlugin):
 
         creds['login'] = username
 
-        log( "returning username: %s" % username )
+        # log( "returning username: %s" % username )
 
         return creds
 
