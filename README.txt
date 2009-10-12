@@ -35,6 +35,12 @@ Usage
 The user can use the token only once and it's valid for three weeks. The expiration time
 can be set in the tool.
 
+Manager's usage
+===============
+
+Users with Manage portal permission on Plone site root are allowed to login as
+any other user by visiting @@login_as browser view and entering target user
+name. This feature has been taken from niteoweb.loginas package and modified.
 
 Safety
 ======

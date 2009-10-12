@@ -1,6 +1,13 @@
 Changelog
 =========
 
+0.2   - 2009-10-12
+------------------
+
+- added @@login_as browser view which allows to login as any user. Idea and
+  part of code taken from niteoweb.loginas. Thanks!
+  [naro]
+
 0.1.1 - 2009-09-02
 ------------------
 
