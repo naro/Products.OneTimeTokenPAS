@@ -1,21 +1,21 @@
-import persistent
-from persistent.mapping import PersistentMapping
-from BTrees.OOBTree import OOBTree
-
-
-import socket, time, md5, random
+import socket
+import time
+import md5
+import random
 from base64 import urlsafe_b64encode as encodestring
 from base64 import urlsafe_b64decode as decodestring
 
-from AccessControl import ClassSecurityInfo
+import persistent
+from persistent.mapping import PersistentMapping
+from BTrees.OOBTree import OOBTree
 from DateTime import DateTime
-from OFS.SimpleItem import SimpleItem
 from Globals import InitializeClass
+from OFS.SimpleItem import SimpleItem
+from AccessControl import ClassSecurityInfo
 
 from Products.CMFCore.permissions import ManageUsers
 from Products.CMFCore.utils import getToolByName
 from Products.CMFCore.utils import UniqueObject
-
 
 
 class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
@@ -31,19 +31,23 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
     def getTokens(self):
         """ Return all usernames and dates without tokens, read only 
         """
-        return [self._tokens[x] for x in self._tokens]
+        return self._tokens.values()
 
     security.declareProtected(ManageUsers, 'setToken')
-    def setToken(self, userId):
-        """  
+    def setToken(self, userId=None):
+        """ Generate token for user or create one-time-user + token
         """
         token = ''
         m_tool = getToolByName(self, 'portal_membership')
 
+        if not userId:
+            userId = '@company-on.net' % self.uniqueString()
+            self.registration.addMember(userId, self.uniqueString())
+
         expiry = str(self.expirationDate())
         token = self.uniqueString()
        
-        self._tokens[token] = (userId, expiry) 
+        self._tokens[token] = (userId, expiry)
         login = "%s:%s" % (userId, token)
 
         # encode the login string to make it url safe
@@ -136,11 +140,11 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
         """Destroys all expired reset request records.
         Parameter controls how many days past expired it must be to disappear.
         """
+        m_tool = getToolByName(self, 'portal_membership')
         for token, record in self._tokens.items():
             stored_user, expiry = record
             if self.expired(expiry, DateTime()-days):
                 del self._tokens[token]
-
+                m_tool.acl_users.source_users.doDeleteUser(stored_user)
 
 InitializeClass(TokenStorage)
-
