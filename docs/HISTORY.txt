@@ -1,6 +1,14 @@
 Changelog
 =========
 
+0.3 - 2010-xx-xx
+----------------
+
+- added some tests coverage
+- added ability to create temporary user when issuing .setToken(). Also added
+  .deleteTemporaryUser(userid) method
+- fixed bug then .clearExpired() will never actually do anything
+
 0.2   - 2009-10-12
 ------------------
 

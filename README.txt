@@ -21,19 +21,40 @@ This product is written for Plone 2.5 but can easily be used for 3.x.
 Usage
 =====
 
-1. Generate a token:
+1. Generate a token::
 
-    getToolByName(self, 'onetimetoken_storage')
+    tokenTool = getToolByName(self, 'onetimetoken_storage')
 
     token = tokenTool.setToken(userId)
-    logincode = '?logincode=%s' % tokenTool.setToken(userId)
 
-    'http://myplone/supersecret%s' % logincode
+    'http://myplone/@@do_some_nice_stuff?token=%s' % token = token
 
 2. Send url with logincode to user
 
 The user can use the token only once and it's valid for three weeks. The expiration time
 can be set in the tool.
+
+
+Or you can generate temporary user and delete it later::
+
+    tokenTool = getToolByName(self, 'onetimetoken_storage')
+
+    # get token and create temporary user
+    token = tokenTool.setToken()
+
+
+    # user uses token to do some nice stuff
+    'http://myplone/@@do_some_nice_stuff?token=%s' % token = token
+
+    # inside that view
+    userid = self.verifyToken(token)
+
+    # do some stuff with user (login, get some girls, etc)
+    # ...
+
+    # delete temporary user
+    tokenTool.deleteTemporaryUser(userid)
+    
 
 Manager's usage
 ===============

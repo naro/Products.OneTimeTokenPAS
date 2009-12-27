@@ -17,6 +17,8 @@ from Products.CMFCore.permissions import ManageUsers
 from Products.CMFCore.utils import getToolByName
 from Products.CMFCore.utils import UniqueObject
 
+from Products.OneTimeTokenPAS.config import *
+
 
 class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
     isPrincipiaFolderish = True # Show up in the ZMI
@@ -41,8 +43,9 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
         m_tool = getToolByName(self, 'portal_membership')
 
         if not userId:
-            userId = '@company-on.net' % self.uniqueString()
-            self.registration.addMember(userId, self.uniqueString())
+            userId = self.getRandomUsername()
+            done = m_tool.acl_users.source_users.doAddUser(userId, self.uniqueString())
+            assert done, "User could not be created for OneTimeToken!"
 
         expiry = str(self.expirationDate())
         token = self.uniqueString()
@@ -62,25 +65,29 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
         try:
             userId, token = decodestring(loginCode).split(':')
         except:
-            raise 'InvalidLoginCodeError'
+            raise TokenError('InvalidLoginCodeError')
 
         try:
             u, expiry = self._tokens[token]
         except KeyError:
-            raise 'InvalidTokenError'
+            raise TokenError('InvalidTokenError')
 
         if self.expired(expiry):
-            raise 'ExpiredExpiryError'
+            raise TokenError('ExpiredExpiryError')
 
         if not u == userId:
-            raise 'InvalidUserError'
+            raise TokenError('InvalidUserError')
 
         del self._tokens[token]
 
         return u
 
-
-    ## supporting methods
+    security.declarePublic('deleteTemporaryUser')
+    def deleteTemporaryUser(self, userId):
+        """
+        """
+        m_tool = getToolByName(self, 'portal_membership')
+        return m_tool.acl_users.source_users.doDeleteUser(userId)
 
     security.declarePrivate('uniqueString')
     def uniqueString(self):
@@ -99,6 +106,9 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
         data = str(t)+' '+str(r)+' '+str(a)#+' '+str(args)
         data = md5.md5(data).hexdigest()
         return str(data)
+
+    # user can override this method to specify generation of username
+    getRandomUsername = uniqueString
 
     security.declarePrivate('expirationDate')
     def expirationDate(self):
@@ -124,7 +134,6 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
         expire = time.time() + self._timedelta*3600  # 60 min/hr * 60 sec/min
         return DateTime(expire)
 
-
     security.declarePrivate('expired')
     def expired(self, datetime, now=None):
         """Tells whether a DateTime or timestamp 'datetime' is expired
@@ -134,17 +143,15 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
             now = DateTime()
         return now.greaterThanEqualTo(datetime)
 
-
     security.declarePrivate('clearExpired')
     def clearExpired(self, days=0):
         """Destroys all expired reset request records.
-        Parameter controls how many days past expired it must be to disappear.
+        Parameter 'days' controls how many days past expired it must be to clear token.
         """
-        m_tool = getToolByName(self, 'portal_membership')
         for token, record in self._tokens.items():
             stored_user, expiry = record
-            if self.expired(expiry, DateTime()-days):
+            if self.expired(DateTime(expiry), DateTime()-days):
                 del self._tokens[token]
-                m_tool.acl_users.source_users.doDeleteUser(stored_user)
+                self.deleteTemporaryUser(stored_user)
 
 InitializeClass(TokenStorage)
