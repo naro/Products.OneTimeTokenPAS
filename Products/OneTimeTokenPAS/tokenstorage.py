@@ -36,14 +36,17 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
         return self._tokens.values()
 
     security.declareProtected(ManageUsers, 'setToken')
-    def setToken(self, userId=None):
+    def setToken(self, userId=None, generate_username_callback=None):
         """ Generate token for user or create one-time-user + token
         """
         token = ''
         m_tool = getToolByName(self, 'portal_membership')
 
         if not userId:
-            userId = self.getRandomUsername()
+            if generate_username_callback:
+                userId = generate_username_callback()
+            else:
+                userId = self.uniqueString()
             done = m_tool.acl_users.source_users.doAddUser(userId, self.uniqueString())
             assert done, "User could not be created for OneTimeToken!"
 
@@ -106,9 +109,6 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
         data = str(t)+' '+str(r)+' '+str(a)#+' '+str(args)
         data = md5.md5(data).hexdigest()
         return str(data)
-
-    # user can override this method to specify generation of username
-    getRandomUsername = uniqueString
 
     security.declarePrivate('expirationDate')
     def expirationDate(self):
