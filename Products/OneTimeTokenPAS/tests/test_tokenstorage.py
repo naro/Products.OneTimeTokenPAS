@@ -54,8 +54,7 @@ class TokenStorageTestCase(ptc.PloneTestCase):
     def test_custom_username_function(self):
         username = '123456'
         # generate token
-        self.ott.getRandomUsername = lambda: username
-        token = self.ott.setToken()
+        token = self.ott.setToken(generate_username_callback=lambda: username)
 
         # verify token
         userid = self.ott.verifyToken(token)

@@ -36,7 +36,7 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
         return self._tokens.values()
 
     security.declareProtected(ManageUsers, 'setToken')
-    def setToken(self, userId=None, generate_username_callback=None):
+    def setToken(self, userId=None, generate_username_callback=None, generate_username_kwargs=None):
         """ Generate token for user or create one-time-user + token
         """
         token = ''
@@ -44,7 +44,7 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
 
         if not userId:
             if generate_username_callback:
-                userId = generate_username_callback()
+                userId = generate_username_callback(**(generate_username_kwargs or {}))
             else:
                 userId = self.uniqueString()
             done = m_tool.acl_users.source_users.doAddUser(userId, self.uniqueString())
