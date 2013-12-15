@@ -11,15 +11,20 @@ def install( portal ):
 
     existing = pas.objectIds()
     if PLUGIN_ID not in existing:
-        onetimetokenpas = pas.manage_addProduct[PROJECTNAME] 
+        onetimetokenpas = pas.manage_addProduct[PROJECTNAME]
         onetimetokenpas.manage_addOneTimeTokenPlugin(PLUGIN_ID, 'One Time Token Plugin')
         print >> out, "Adding %s to PAS." % PLUGIN_ID
         activatePluginInterfaces(portal, PLUGIN_ID, out)
 
+    # we want to be fully compatible with old Plone versions
     setuptool = getToolByName(portal, 'portal_setup')
     importcontext = 'profile-Products.%s:default' % PROJECTNAME
-    setuptool.setImportContext(importcontext)
-    setuptool.runAllImportSteps()
+    if getattr(setuptool, 'runAllImportStepsFromProfile', None) is not None:
+        # Plone 4+, maybe 3
+        setuptool.runAllImportStepsFromProfile(importcontext)
+    else:
+        setuptool.setImportContext(importcontext)
+        setuptool.runAllImportSteps()
 
     print >> out, "Successfully installed %s." % PROJECTNAME
     return out.getvalue()

@@ -24,6 +24,7 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
     isPrincipiaFolderish = True # Show up in the ZMI
     security = ClassSecurityInfo()
     meta_type = 'TokenStorage'
+    id = 'onetimetoken_storage'
 
     _timedelta = 504 # three weeks
 
@@ -31,7 +32,7 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
         self._tokens = OOBTree()
 
     def getTokens(self):
-        """ Return all usernames and dates without tokens, read only 
+        """ Return all usernames and dates without tokens, read only
         """
         return self._tokens.values()
 
@@ -52,7 +53,7 @@ class TokenStorage(UniqueObject, SimpleItem, persistent.Persistent):
 
         expiry = str(self.expirationDate())
         token = self.uniqueString()
-       
+
         self._tokens[token] = (userId, expiry)
         login = "%s:%s" % (userId, token)
 
