@@ -3,6 +3,7 @@ import sys
 from Acquisition import aq_base
 from AccessControl.SecurityInfo import ClassSecurityInfo
 from Globals import InitializeClass, DTMLFile
+from base64 import urlsafe_b64decode as decodestring
 
 from Products.CMFCore.utils import getToolByName
 from Products.PluggableAuthService.plugins.CookieAuthHelper \
@@ -16,6 +17,31 @@ from Products.OneTimeTokenPAS.config import *
 
 # This hacked PlonePAS collection of plugins was mostly ripped
 # from other plugins, especially from CookieAuthHelper
+
+
+def try_decode(token):
+    """ Try to decode token, but add one or two = until not successfull
+        Returns decoded string and new (correct) token
+    """
+    new_token = token
+    decoded = ''
+    try:
+        decoded = decodestring(new_token)
+    except:
+        new_token = new_token + '='
+        try:
+            decoded = decodestring(new_token)
+        except:
+            new_token = new_token + '='
+            try:
+                decoded = decodestring(new_token)
+            except:
+                pass
+    if not decoded:
+        # no change
+        new_token = token
+
+    return decoded, new_token
 
 
 def manage_addOneTimeTokenPlugin(self, id, title='',
@@ -83,16 +109,29 @@ class OneTimeTokenPlugin(BasePlugin):
             username = ob._getUsername()
             #log( "session username: %s" % username )
 
+        # do not log ++theme and ++resource stuff
+        do_log = '++' not in request.URL0
+
         if username is None:
             loginCode = request.get('logincode')
 
             if not loginCode:
                 return None  # not authenticated
 
+            decoded, new_loginCode = try_decode(loginCode)
+
+            if do_log:
+                url = request.URL0
+                if loginCode != new_loginCode:
+                    log("Token: url: %s loginCode old: %s new: %s decoded to: %s" % (url, loginCode, new_loginCode, decoded))
+                else:
+                    log("Token: url: %s loginCode: %s decoded to: %s" % (url, loginCode, decoded))
+
             try:
-                username = tokenTool.verifyToken(loginCode)
-            except:
-                log("Error, token tool refused token: %s" % sys.exc_info()[0])
+                username = tokenTool.verifyToken(new_loginCode)
+            except Exception, e:
+                if do_log:
+                    log("Error, token tool refused token: %s" % str(e))
 
             if not username:
                 return None  # not authenticated
