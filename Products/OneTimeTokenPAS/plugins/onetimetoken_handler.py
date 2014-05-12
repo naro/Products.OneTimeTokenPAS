@@ -1,6 +1,5 @@
 import sys
 
-from urllib import quote, unquote
 from Acquisition import aq_base
 from AccessControl.SecurityInfo import ClassSecurityInfo
 from Globals import InitializeClass, DTMLFile
@@ -9,10 +8,8 @@ from Products.CMFCore.utils import getToolByName
 from Products.PluggableAuthService.plugins.CookieAuthHelper \
     import CookieAuthHelper as BasePlugin
 from Products.PluggableAuthService.utils import classImplements
-from Products.PluggableAuthService.interfaces.authservice \
-        import IPluggableAuthService
 from Products.PluggableAuthService.interfaces.plugins import \
-        IExtractionPlugin, IAuthenticationPlugin
+    IExtractionPlugin, IAuthenticationPlugin
 
 from Products.CMFPlone.utils import log
 from Products.OneTimeTokenPAS.config import *
@@ -20,8 +17,9 @@ from Products.OneTimeTokenPAS.config import *
 # This hacked PlonePAS collection of plugins was mostly ripped
 # from other plugins, especially from CookieAuthHelper
 
-def manage_addOneTimeTokenPlugin (self, id, title='',
-                                RESPONSE=None, **kw):
+
+def manage_addOneTimeTokenPlugin(self, id, title='',
+                                 RESPONSE=None, **kw):
     """Create an instance of a one time token cookie helper.
     """
 
@@ -52,12 +50,12 @@ class OneTimeTokenPlugin(BasePlugin):
     a setAuthCookie method/script.
     """
 
-    _properties = ( { 'id'    : 'title'
-                    , 'label' : 'Title'
-                    , 'type'  : 'string'
-                    , 'mode'  : 'w'
+    _properties = ({'id': 'title',
+                    'label': 'Title',
+                    'type': 'string',
+                    'mode': 'w',
                     },
-                  )
+                   )
 
     meta_type = 'One Time Token Plugin'
     security = ClassSecurityInfo()
@@ -68,8 +66,8 @@ class OneTimeTokenPlugin(BasePlugin):
         self._setId(id)
         self.title = title
 
-    security.declarePrivate( 'extractCredentials' )
-    def extractCredentials( self, request ):
+    security.declarePrivate('extractCredentials')
+    def extractCredentials(self, request):
 
         """ Extract credentials from cookie or 'request'. """
         #log( 'extractCredentials')
@@ -84,20 +82,20 @@ class OneTimeTokenPlugin(BasePlugin):
         if ob is not None and isinstance(ob, UsernameStorage):
             username = ob._getUsername()
             #log( "session username: %s" % username )
-        
-        if username is None: 
+
+        if username is None:
             loginCode = request.get('logincode')
 
             if not loginCode:
-                return None # not authenticated
+                return None  # not authenticated
 
             try:
                 username = tokenTool.verifyToken(loginCode)
             except:
-                log( "Error, token tool refused token: %s" % sys.exc_info()[0] )
+                log("Error, token tool refused token: %s" % sys.exc_info()[0])
 
             if not username:
-                return None # not authenticated
+                return None  # not authenticated
 
             #log( "token username: %s" % username )
 
@@ -111,17 +109,15 @@ class OneTimeTokenPlugin(BasePlugin):
         except AttributeError:
             creds['remote_address'] = request.get('REMOTE_ADDR', '')
 
-
         creds['login'] = username
 
         # log( "returning username: %s" % username )
 
         return creds
 
-
     def authenticateCredentials(self, credentials):
 
-        if credentials.has_key('extractor') and \
+        if 'extractor' in credentials and \
            credentials['extractor'] != self.getId():
             return (None, None)
 
@@ -131,20 +127,16 @@ class OneTimeTokenPlugin(BasePlugin):
 
         return (login, login)
 
-
     security.declarePrivate('resetCredentials')
     def resetCredentials(self, request, response):
         """ Clears credentials"""
         session = self.REQUEST.SESSION
         session[self.session_var] = None
 
-    
-
 
 classImplements(OneTimeTokenPlugin,
                 IExtractionPlugin,
                 IAuthenticationPlugin,
-               )
+                )
 
 InitializeClass(OneTimeTokenPlugin)
-
