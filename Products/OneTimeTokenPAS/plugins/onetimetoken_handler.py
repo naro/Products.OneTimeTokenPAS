@@ -99,12 +99,20 @@ class OneTimeTokenPlugin(BasePlugin):
         #log( 'extractCredentials')
 
         creds = {}
-        session = request.SESSION
         username = None
 
         tokenTool = getToolByName(self, 'onetimetoken_storage')
+        sdm = getToolByName(self, 'session_data_manager', None)
+        if sdm is None:
+            session = request.SESSION
+        else:
+            session = sdm.getSessionData(create=False)
 
-        ob = session.get(self.session_var)
+        ob = None
+
+        if sdm.hasSessionData():
+            ob = session.get(self.session_var)
+
         if ob is not None and isinstance(ob, UsernameStorage):
             username = ob._getUsername()
             #log( "session username: %s" % username )
@@ -140,6 +148,7 @@ class OneTimeTokenPlugin(BasePlugin):
 
             userstorage = UsernameStorage()
             userstorage._setUsername(username)
+            session = sdm.getSessionData(create=True)
             session[self.session_var] = userstorage
 
         creds['remote_host'] = request.get('REMOTE_HOST', '')
@@ -169,8 +178,14 @@ class OneTimeTokenPlugin(BasePlugin):
     security.declarePrivate('resetCredentials')
     def resetCredentials(self, request, response):
         """ Clears credentials"""
-        session = self.REQUEST.SESSION
-        session[self.session_var] = None
+        sdm = getToolByName(self, 'session_data_manager', None)
+        if sdm is None:
+            session = request.SESSION
+        else:
+            session = sdm.getSessionData(create=False)
+
+        if session and (self.session_var in session):
+            del session[self.session_var]
 
 
 classImplements(OneTimeTokenPlugin,
